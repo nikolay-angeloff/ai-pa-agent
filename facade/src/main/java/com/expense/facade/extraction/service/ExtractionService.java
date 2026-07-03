@@ -1,6 +1,7 @@
-package com.expense.facade.extraction;
+package com.expense.facade.extraction.service;
 
-import com.expense.facade.document.Document;
+import com.expense.facade.document.entity.Document;
+import com.expense.facade.extraction.dto.ExtractionResult;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.ai.chat.client.ChatClient;

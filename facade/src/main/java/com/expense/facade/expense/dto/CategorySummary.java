@@ -1,4 +1,4 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.dto;
 
 import java.math.BigDecimal;
 

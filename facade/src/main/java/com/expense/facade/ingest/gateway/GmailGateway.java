@@ -1,4 +1,4 @@
-package com.expense.facade.ingest;
+package com.expense.facade.ingest.gateway;
 
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
@@ -28,7 +28,7 @@ public class GmailGateway {
         this.gmail = gmail;
     }
 
-    List<Message> listMessages() throws IOException {
+    public List<Message> listMessages() throws IOException {
         var response = gmail.users().messages().list(USER)
                 .setQ(QUERY)
                 .setMaxResults(MAX_RESULTS)
@@ -36,11 +36,11 @@ public class GmailGateway {
         return response.getMessages() != null ? response.getMessages() : List.of();
     }
 
-    Message getMessage(String messageId) throws IOException {
+    public Message getMessage(String messageId) throws IOException {
         return gmail.users().messages().get(USER, messageId).execute();
     }
 
-    byte[] getAttachmentBytes(String messageId, MessagePart part) throws IOException {
+    public byte[] getAttachmentBytes(String messageId, MessagePart part) throws IOException {
         String inline = part.getBody().getData();
         if (inline != null && !inline.isEmpty()) {
             return Base64.getUrlDecoder().decode(inline);
@@ -51,11 +51,18 @@ public class GmailGateway {
         return Base64.getUrlDecoder().decode(body.getData());
     }
 
-    /** Recursively collect parts that look like receipt attachments. */
-    List<MessagePart> receiptAttachmentParts(Message message) {
+    public List<MessagePart> receiptAttachmentParts(Message message) {
         List<MessagePart> result = new ArrayList<>();
         collectParts(message.getPayload(), result);
         return result;
+    }
+
+    public String headerValue(Message message, String name) {
+        if (message.getPayload() == null || message.getPayload().getHeaders() == null) return null;
+        return message.getPayload().getHeaders().stream()
+                .filter(h -> name.equalsIgnoreCase(h.getName()))
+                .map(com.google.api.services.gmail.model.MessagePartHeader::getValue)
+                .findFirst().orElse(null);
     }
 
     private void collectParts(MessagePart part, List<MessagePart> out) {
@@ -76,13 +83,5 @@ public class GmailGateway {
         String lower = filename.toLowerCase();
         return lower.endsWith(".pdf") || lower.endsWith(".jpg")
                 || lower.endsWith(".jpeg") || lower.endsWith(".png");
-    }
-
-    String headerValue(Message message, String name) {
-        if (message.getPayload() == null || message.getPayload().getHeaders() == null) return null;
-        return message.getPayload().getHeaders().stream()
-                .filter(h -> name.equalsIgnoreCase(h.getName()))
-                .map(com.google.api.services.gmail.model.MessagePartHeader::getValue)
-                .findFirst().orElse(null);
     }
 }

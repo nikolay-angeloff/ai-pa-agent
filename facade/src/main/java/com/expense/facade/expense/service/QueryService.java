@@ -1,6 +1,11 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.service;
 
 import com.expense.facade.config.QdrantCollectionInitializer;
+import com.expense.facade.expense.dto.CategorySummary;
+import com.expense.facade.expense.dto.ExpenseView;
+import com.expense.facade.expense.dto.SummaryResponse;
+import com.expense.facade.expense.entity.Expense;
+import com.expense.facade.expense.repository.ExpenseRepository;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.grpc.Points.SearchPoints;
 import io.qdrant.client.grpc.Points.ScoredPoint;

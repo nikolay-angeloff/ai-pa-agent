@@ -1,4 +1,4 @@
-package com.expense.facade.document;
+package com.expense.facade.document.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -46,15 +46,13 @@ public class Document {
     @Column(columnDefinition = "TEXT")
     private String rawText;
 
-    // JSON-serialized ExtractionResult; read by ExpensePersistenceService in Step 4.
+    // JSON-serialized ExtractionResult; read by ExpensePersistenceService.
     @Column(columnDefinition = "TEXT")
     private String extractedData;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    // --- getters / setters ---
 
     public UUID getId() { return id; }
 

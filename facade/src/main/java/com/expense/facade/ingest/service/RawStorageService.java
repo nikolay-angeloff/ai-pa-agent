@@ -1,4 +1,4 @@
-package com.expense.facade.ingest;
+package com.expense.facade.ingest.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ public class RawStorageService {
     @Value("${app.storage.raw-path:/tmp/raw}")
     private String basePath;
 
-    String save(String messageId, String filename, byte[] data) throws IOException {
+    public String save(String messageId, String filename, byte[] data) throws IOException {
         Path dir = Path.of(basePath, messageId);
         Files.createDirectories(dir);
         Path file = dir.resolve(sanitize(filename));

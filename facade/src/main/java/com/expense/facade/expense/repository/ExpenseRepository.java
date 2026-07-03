@@ -1,7 +1,9 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.repository;
 
-import org.springframework.data.jpa.repository.Query;
+import com.expense.facade.expense.dto.CategorySummary;
+import com.expense.facade.expense.entity.Expense;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
@@ -13,7 +15,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
 
     boolean existsByDocumentId(UUID documentId);
 
-    /** Aggregates expenses by category for the given date range. */
     @Query(value = """
             SELECT COALESCE(category, 'uncategorized') AS category,
                    SUM(amount)                         AS total,

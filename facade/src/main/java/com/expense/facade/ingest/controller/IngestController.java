@@ -1,5 +1,7 @@
-package com.expense.facade.ingest;
+package com.expense.facade.ingest.controller;
 
+import com.expense.facade.ingest.dto.IngestResult;
+import com.expense.facade.ingest.service.IngestService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

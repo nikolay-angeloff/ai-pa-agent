@@ -1,6 +1,6 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.entity;
 
-import com.expense.facade.document.Document;
+import com.expense.facade.document.entity.Document;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -36,19 +36,15 @@ public class Expense {
     @Column(length = 64)
     private String category;
 
-    // LLM extraction confidence: 0.000 – 1.000
     @Column(precision = 4, scale = 3)
     private BigDecimal confidence;
 
-    // Text snippet stored in Qdrant for semantic search
     @Column(columnDefinition = "TEXT")
     private String rawText;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    // --- getters / setters ---
 
     public UUID getId() { return id; }
 

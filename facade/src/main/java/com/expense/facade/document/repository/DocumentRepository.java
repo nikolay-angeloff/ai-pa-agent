@@ -1,5 +1,7 @@
-package com.expense.facade.document;
+package com.expense.facade.document.repository;
 
+import com.expense.facade.document.entity.Document;
+import com.expense.facade.document.entity.DocumentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

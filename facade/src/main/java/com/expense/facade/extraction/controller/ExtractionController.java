@@ -1,9 +1,12 @@
-package com.expense.facade.extraction;
+package com.expense.facade.extraction.controller;
 
-import com.expense.facade.document.Document;
-import com.expense.facade.document.DocumentRepository;
-import com.expense.facade.document.DocumentStatus;
-import com.expense.facade.document.DocumentType;
+import com.expense.facade.document.entity.Document;
+import com.expense.facade.document.entity.DocumentStatus;
+import com.expense.facade.document.entity.DocumentType;
+import com.expense.facade.document.repository.DocumentRepository;
+import com.expense.facade.extraction.dto.ExtractionDetail;
+import com.expense.facade.extraction.dto.ExtractionResult;
+import com.expense.facade.extraction.service.ExtractionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -37,7 +40,7 @@ public class ExtractionController {
 
     /**
      * Processes every document with status=RAW. Updates status + type in Postgres.
-     * Expense persistence and Qdrant embedding happen in Step 4 (POST /expenses/ingest).
+     * Expense persistence and Qdrant embedding happen in POST /expenses/ingest.
      */
     @PostMapping("/run")
     @Transactional
@@ -85,7 +88,7 @@ public class ExtractionController {
         };
     }
 
-    /** Prose snippet stored on Document.rawText; used as embedding input in Step 4. */
+    /** Prose snippet stored on Document.rawText; used as embedding input in /expenses/ingest. */
     private String buildEmbeddingText(ExtractionResult r) {
         return "%s at %s for %s %s on %s".formatted(
                 r.documentType(), r.merchant(), r.amount(), r.currency(), r.date());

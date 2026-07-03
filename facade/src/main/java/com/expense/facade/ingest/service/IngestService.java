@@ -1,9 +1,11 @@
-package com.expense.facade.ingest;
+package com.expense.facade.ingest.service;
 
-import com.expense.facade.document.Document;
-import com.expense.facade.document.DocumentRepository;
-import com.expense.facade.document.DocumentStatus;
-import com.expense.facade.document.DocumentType;
+import com.expense.facade.document.entity.Document;
+import com.expense.facade.document.entity.DocumentStatus;
+import com.expense.facade.document.entity.DocumentType;
+import com.expense.facade.document.repository.DocumentRepository;
+import com.expense.facade.ingest.dto.IngestResult;
+import com.expense.facade.ingest.gateway.GmailGateway;
 import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.MessagePart;
 import org.slf4j.Logger;
@@ -59,7 +61,6 @@ public class IngestService {
                     continue;
                 }
 
-                // Take the first relevant attachment per message
                 MessagePart part = parts.get(0);
                 byte[] data = gmailGateway.getAttachmentBytes(msgId, part);
                 String path = rawStorage.save(msgId, part.getFilename(), data);
@@ -86,7 +87,7 @@ public class IngestService {
 
         Document doc = new Document();
         doc.setSource("gmail");
-        doc.setType(DocumentType.UNKNOWN);          // classified during extraction (Step 3)
+        doc.setType(DocumentType.UNKNOWN);
         doc.setStatus(DocumentStatus.RAW);
         doc.setGmailMessageId(full.getId());
         doc.setGmailAttachmentId(attachmentId);

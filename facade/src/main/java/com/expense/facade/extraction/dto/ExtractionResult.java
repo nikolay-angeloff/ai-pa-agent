@@ -1,4 +1,4 @@
-package com.expense.facade.extraction;
+package com.expense.facade.extraction.dto;
 
 import java.math.BigDecimal;
 
@@ -7,10 +7,10 @@ import java.math.BigDecimal;
  * to avoid Jackson/LocalDate wiring complexity; parsed to LocalDate in Step 4.
  */
 public record ExtractionResult(
-        String documentType,   // "receipt" | "invoice" | "unknown"
+        String documentType,
         String merchant,
         BigDecimal amount,
-        String currency,       // ISO 4217
-        String date,           // "YYYY-MM-DD"
-        BigDecimal confidence  // 0.000 – 1.000
+        String currency,
+        String date,
+        BigDecimal confidence
 ) {}

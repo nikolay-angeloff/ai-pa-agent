@@ -1,4 +1,4 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,5 +13,5 @@ public record ExpenseView(
         LocalDate expenseDate,
         String category,
         BigDecimal confidence,
-        Double score          // cosine similarity score from Qdrant
+        Double score
 ) {}

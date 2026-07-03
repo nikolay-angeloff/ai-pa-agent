@@ -1,5 +1,8 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.controller;
 
+import com.expense.facade.expense.dto.ExpenseView;
+import com.expense.facade.expense.dto.SummaryResponse;
+import com.expense.facade.expense.service.QueryService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +22,7 @@ public class QueryController {
         this.queryService = queryService;
     }
 
-    /**
-     * Aggregates expenses in the given date range.
-     * Example: GET /expenses/summary?from=2024-01-01&to=2024-03-31
-     */
+    /** GET /expenses/summary?from=2024-01-01&to=2024-03-31 */
     @GetMapping("/summary")
     public ResponseEntity<SummaryResponse> summary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -31,10 +31,7 @@ public class QueryController {
         return ResponseEntity.ok(queryService.summarize(from, to));
     }
 
-    /**
-     * Semantic search over expenses via Qdrant.
-     * Example: GET /expenses/search?q=grocery+shopping&limit=5
-     */
+    /** GET /expenses/search?q=grocery+shopping&limit=5 */
     @GetMapping("/search")
     public ResponseEntity<List<ExpenseView>> search(
             @RequestParam String q,

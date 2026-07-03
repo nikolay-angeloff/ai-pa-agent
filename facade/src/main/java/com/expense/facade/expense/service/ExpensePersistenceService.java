@@ -1,10 +1,13 @@
-package com.expense.facade.expense;
+package com.expense.facade.expense.service;
 
 import com.expense.facade.config.QdrantCollectionInitializer;
-import com.expense.facade.document.Document;
-import com.expense.facade.document.DocumentRepository;
-import com.expense.facade.document.DocumentStatus;
-import com.expense.facade.extraction.ExtractionResult;
+import com.expense.facade.document.entity.Document;
+import com.expense.facade.document.entity.DocumentStatus;
+import com.expense.facade.document.repository.DocumentRepository;
+import com.expense.facade.expense.dto.IngestSummary;
+import com.expense.facade.expense.entity.Expense;
+import com.expense.facade.expense.repository.ExpenseRepository;
+import com.expense.facade.extraction.dto.ExtractionResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.grpc.Points.PointStruct;
@@ -104,7 +107,7 @@ public class ExpensePersistenceService {
         try {
             return LocalDate.parse(raw);
         } catch (Exception e) {
-            return LocalDate.now();  // fallback; LLM sometimes returns malformed dates
+            return LocalDate.now();
         }
     }
 

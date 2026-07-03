@@ -1,4 +1,4 @@
-package com.expense.facade.ingest;
+package com.expense.facade.ingest.gateway;
 
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
