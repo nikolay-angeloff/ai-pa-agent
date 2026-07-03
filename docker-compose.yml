@@ -1,0 +1,127 @@
+# Personal Expense Agent — local development stack
+# Usage: cp .env.example .env  &&  docker compose up --build
+#
+# Skeleton: each service dir (gateway/, facade/, agents/, webhook/, dashboard/)
+# must contain a Dockerfile. Build phase by phase (see CLAUDE.md) — you don't
+# need every service running to start. Comment out what you're not on yet.
+
+name: expense-agent
+
+services:
+  # ---- Infrastructure ---------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5434:5432"    # host 5432 may be taken; containers talk via expense-net
+    volumes:
+      - pgdata:/var/lib/postgresql/data          # persistent — survives restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [expense-net]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"                              # REST
+      - "6334:6334"                              # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage              # persistent — WITHOUT this, data is lost on restart
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [expense-net]
+
+  # ---- Application services ---------------------------------------------
+  facade:
+    build: ./facade                              # Spring Boot + Spring AI
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6334
+      AGENT_SVC_URL: http://agents:8000
+      # local LLM via API key (facade light calls + embeddings).
+      # :- passes placeholder when var is unset OR empty so the app starts without key;
+      # /extract/run calls will fail with auth error until a real key is filled in .env.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-placeholder}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN}
+      RAW_STORAGE_PATH: /data/raw
+    volumes:
+      - ./data/raw:/data/raw                  # raw attachments — visible on host too
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres: { condition: service_healthy }
+      qdrant: { condition: service_healthy }
+    networks: [expense-net]
+
+  agents:
+    build: ./agents                              # Python + LangGraph (FastAPI)
+    environment:
+      FACADE_URL: http://facade:8081             # agents call facade tools (search/aggregate)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}    # optional: tracing
+      LANGSMITH_TRACING: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - facade
+    networks: [expense-net]
+
+  gateway:
+    build: ./gateway                             # Spring Cloud Gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      FACADE_URI: http://facade:8081
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"                              # single entry point
+    depends_on:
+      - facade
+    networks: [expense-net]
+
+  webhook:
+    build: ./webhook                             # Node.js — Viber/Telegram + WebSocket push
+    environment:
+      GATEWAY_URL: http://gateway:8080
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      VIBER_AUTH_TOKEN: ${VIBER_AUTH_TOKEN}      # optional; needs public account + HTTPS
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+    networks: [expense-net]
+
+  dashboard:
+    build: ./dashboard                           # Angular
+    environment:
+      API_BASE_URL: http://localhost:8080
+    ports:
+      - "4200:4200"
+    depends_on:
+      - gateway
+    networks: [expense-net]
+
+volumes:
+  pgdata:
+  qdrant_data:
+
+networks:
+  expense-net:
+    driver: bridge

@@ -1,0 +1,5 @@
+# Local profile — all connection details come from env vars in docker-compose.yml.
+# No hardcoded secrets here.
+spring:
+  jpa:
+    show-sql: false

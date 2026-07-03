@@ -1,0 +1,49 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: facade
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Liquibase owns the schema; Hibernate only validates
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:dummy}   # set real key in .env before calling /extract/run
+      chat:
+        options:
+          model: gpt-4o
+      embedding:
+        options:
+          model: text-embedding-3-small   # 1536 dims; matches QdrantCollectionInitializer
+
+qdrant:
+  host: ${QDRANT_HOST:localhost}
+  port: ${QDRANT_PORT:6334}
+
+gmail:
+  client-id: ${GMAIL_CLIENT_ID}
+  client-secret: ${GMAIL_CLIENT_SECRET}
+  refresh-token: ${GMAIL_REFRESH_TOKEN}
+
+app:
+  storage:
+    raw-path: ${RAW_STORAGE_PATH:/tmp/raw}
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

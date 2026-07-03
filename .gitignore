@@ -1,0 +1,39 @@
+# Secrets
+.env
+
+# Raw attachment data (can be large)
+data/
+
+# Java / Gradle
+**/build/
+**/.gradle/
+**/out/
+**/*.class
+**/*.jar
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+**/.env/
+**/dist/
+**/*.egg-info/
+
+# Node.js
+**/node_modules/
+**/dist/
+**/.next/
+
+# Angular
+**/dist/
+**/.angular/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store

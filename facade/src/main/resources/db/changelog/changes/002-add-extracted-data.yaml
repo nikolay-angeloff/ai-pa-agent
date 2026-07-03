@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-extracted-data
+      author: expense-agent
+      changes:
+        - addColumn:
+            tableName: document
+            columns:
+              - column:
+                  name: extracted_data
+                  type: TEXT
+                  constraints:
+                    nullable: true

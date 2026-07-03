@@ -1,0 +1,141 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-document
+      author: expense-agent
+      changes:
+        - createTable:
+            tableName: document
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: source
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  defaultValue: raw
+                  constraints:
+                    nullable: false
+              - column:
+                  name: gmail_message_id
+                  type: VARCHAR(255)
+              - column:
+                  name: gmail_attachment_id
+                  type: VARCHAR(255)
+              - column:
+                  name: subject
+                  type: TEXT
+              - column:
+                  name: sender
+                  type: VARCHAR(255)
+              - column:
+                  name: received_at
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: raw_storage_path
+                  type: TEXT
+              - column:
+                  name: raw_text
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: document
+            columnNames: gmail_message_id
+            constraintName: uq_document_gmail_message_id
+
+        - createIndex:
+            tableName: document
+            indexName: idx_document_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: 001-create-expense
+      author: expense-agent
+      changes:
+        - createTable:
+            tableName: expense
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: document_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_expense_document
+                    references: document(id)
+              - column:
+                  name: merchant
+                  type: VARCHAR(255)
+              - column:
+                  name: amount
+                  type: NUMERIC(12, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency
+                  type: VARCHAR(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expense_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(64)
+              - column:
+                  name: confidence
+                  type: NUMERIC(4, 3)
+              - column:
+                  name: raw_text
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: expense
+            indexName: idx_expense_date
+            columns:
+              - column:
+                  name: expense_date
+
+        - createIndex:
+            tableName: expense
+            indexName: idx_expense_document_id
+            columns:
+              - column:
+                  name: document_id
