@@ -4,6 +4,7 @@ import com.expense.facade.config.QdrantCollectionInitializer;
 import com.expense.facade.document.entity.Document;
 import com.expense.facade.document.entity.DocumentStatus;
 import com.expense.facade.document.repository.DocumentRepository;
+import com.expense.facade.expense.client.WebhookEventPublisher;
 import com.expense.facade.expense.dto.IngestSummary;
 import com.expense.facade.expense.entity.Expense;
 import com.expense.facade.expense.repository.ExpenseRepository;
@@ -37,17 +38,20 @@ public class ExpensePersistenceService {
     private final EmbeddingModel embeddingModel;
     private final QdrantClient qdrantClient;
     private final ObjectMapper objectMapper;
+    private final WebhookEventPublisher webhookEventPublisher;
 
     public ExpensePersistenceService(DocumentRepository documentRepository,
                                      ExpenseRepository expenseRepository,
                                      EmbeddingModel embeddingModel,
                                      QdrantClient qdrantClient,
-                                     ObjectMapper objectMapper) {
+                                     ObjectMapper objectMapper,
+                                     WebhookEventPublisher webhookEventPublisher) {
         this.documentRepository = documentRepository;
         this.expenseRepository = expenseRepository;
         this.embeddingModel = embeddingModel;
         this.qdrantClient = qdrantClient;
         this.objectMapper = objectMapper;
+        this.webhookEventPublisher = webhookEventPublisher;
     }
 
     @Transactional
@@ -81,6 +85,14 @@ public class ExpensePersistenceService {
                         expense.getId(), doc.getId(), extraction.merchant(),
                         extraction.amount(), extraction.currency());
                 ingested++;
+
+                webhookEventPublisher.publishExpenseCreated(Map.of(
+                        "id",       expense.getId().toString(),
+                        "merchant", extraction.merchant() != null ? extraction.merchant() : "",
+                        "amount",   extraction.amount(),
+                        "currency", expense.getCurrency(),
+                        "date",     expense.getExpenseDate().toString()
+                ));
 
             } catch (Exception e) {
                 log.error("Failed to ingest doc {}: {}", doc.getId(), e.getMessage());

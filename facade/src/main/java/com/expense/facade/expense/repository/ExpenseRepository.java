@@ -2,6 +2,7 @@ package com.expense.facade.expense.repository;
 
 import com.expense.facade.expense.dto.CategorySummary;
 import com.expense.facade.expense.entity.Expense;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,9 @@ import java.util.UUID;
 public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
 
     boolean existsByDocumentId(UUID documentId);
+
+    List<Expense> findByExpenseDateBetweenOrderByExpenseDateDesc(
+            LocalDate from, LocalDate to, Pageable pageable);
 
     @Query(value = """
             SELECT COALESCE(category, 'uncategorized') AS category,

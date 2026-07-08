@@ -14,6 +14,36 @@ spring:
           filters:
             # Strip /api prefix before forwarding: /api/health → /health
             - StripPrefix=1
+        # Proxied onward to webhook so it's the only public entry point (VPS deploy —
+        # Caddy only ever talks to gateway/dashboard, see root Caddyfile). Telegram
+        # calls this directly; it's not reachable via /api/** since webhook isn't facade.
+        - id: webhook-telegram
+          uri: ${WEBHOOK_URI:http://localhost:3000}
+          predicates:
+            - Path=/webhook/telegram
+            - Method=POST
+        # ws:// scheme (not http://) is required for Spring Cloud Gateway's websocket
+        # routing filter to pick this route up and proxy the upgrade to the backend.
+        - id: webhook-ws
+          uri: ${WEBHOOK_WS_URI:ws://localhost:3000}
+          predicates:
+            - Path=/ws
+      globalcors:
+        cors-configurations:
+          # Dashboard (Phase 4) is a browser SPA calling the gateway cross-origin —
+          # allow its dev/local origin explicitly rather than '*' since credentials
+          # (JWT header) may be sent.
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
 
 management:
   endpoints:

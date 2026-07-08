@@ -11,12 +11,11 @@ services:
   # ---- Infrastructure ---------------------------------------------------
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5434:5432"    # host 5432 may be taken; containers talk via expense-net
     volumes:
       - pgdata:/var/lib/postgresql/data          # persistent — survives restarts
     healthcheck:
@@ -28,9 +27,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"                              # REST
-      - "6334:6334"                              # gRPC
+    restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage              # persistent — WITHOUT this, data is lost on restart
     healthcheck:
@@ -43,6 +40,7 @@ services:
   # ---- Application services ---------------------------------------------
   facade:
     build: ./facade                              # Spring Boot + Spring AI
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: local
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -51,6 +49,9 @@ services:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6334
       AGENT_SVC_URL: http://agents:8000
+      WEBHOOK_URL: http://webhook:3000            # notify on new expenses (Phase 4 WS channel prep)
+      EVENTS_SECRET: ${EVENTS_SECRET}             # optional; shared secret for facade->webhook events
+      INSIGHT_CRON: ${INSIGHT_CRON:-0 0 8 * * *}  # daily anomaly scan; override for local testing
       # local LLM via API key (facade light calls + embeddings).
       # :- passes placeholder when var is unset OR empty so the app starts without key;
       # /extract/run calls will fail with auth error until a real key is filled in .env.
@@ -62,8 +63,6 @@ services:
       RAW_STORAGE_PATH: /data/raw
     volumes:
       - ./data/raw:/data/raw                  # raw attachments — visible on host too
-    ports:
-      - "8081:8081"
     depends_on:
       postgres: { condition: service_healthy }
       qdrant: { condition: service_healthy }
@@ -71,51 +70,69 @@ services:
 
   agents:
     build: ./agents                              # Python + LangGraph (FastAPI)
+    restart: unless-stopped
     environment:
       FACADE_URL: http://facade:8081             # agents call facade tools (search/aggregate)
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}    # optional: tracing
-      LANGSMITH_TRACING: "true"
-    ports:
-      - "8000:8000"
+      # LangSmith tracing — set LANGSMITH_API_KEY in .env to enable.
+      # Both LANGSMITH_* (new SDK) and LANGCHAIN_* (legacy alias) are set so
+      # tracing works regardless of which langsmith/langchain version is installed.
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-expense-agent}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGCHAIN_API_KEY: ${LANGSMITH_API_KEY}
+      LANGCHAIN_PROJECT: ${LANGSMITH_PROJECT:-expense-agent}
+      LANGCHAIN_TRACING_V2: ${LANGSMITH_TRACING:-false}
+    volumes:
+      # facade writes raw attachments here and passes the absolute path in
+      # raw_storage_path — mount read-only, facade stays the only writer.
+      - ./data/raw:/data/raw:ro
     depends_on:
-      - facade
+      postgres: { condition: service_healthy }
+      facade:   { condition: service_started }
     networks: [expense-net]
 
   gateway:
     build: ./gateway                             # Spring Cloud Gateway
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: local
       FACADE_URI: http://facade:8081
+      WEBHOOK_URI: http://webhook:3000
+      WEBHOOK_WS_URI: ws://webhook:3000
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8080:8080"                              # single entry point
     depends_on:
       - facade
     networks: [expense-net]
 
   webhook:
     build: ./webhook                             # Node.js — Viber/Telegram + WebSocket push
+    restart: unless-stopped
     environment:
       GATEWAY_URL: http://gateway:8080
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}  # optional; verifies setWebhook secret_token header
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}      # optional; target chat for scheduled insight pushes
       VIBER_AUTH_TOKEN: ${VIBER_AUTH_TOKEN}      # optional; needs public account + HTTPS
+      EVENTS_SECRET: ${EVENTS_SECRET}             # optional; verifies POST /events/* really came from facade
       PORT: 3000
-    ports:
-      - "3000:3000"
     depends_on:
       - gateway
     networks: [expense-net]
 
   dashboard:
     build: ./dashboard                           # Angular
+    restart: unless-stopped
     environment:
+      # Both browser-facing (the SPA runs client-side), not container-network URLs —
+      # rendered into env.js at container start by docker-entrypoint.sh.
       API_BASE_URL: http://localhost:8080
-    ports:
-      - "4200:4200"
+      WS_BASE_URL: ws://localhost:3000            # webhook svc's /ws channel (Phase 4 live updates)
     depends_on:
       - gateway
+      - webhook
     networks: [expense-net]
 
 volumes:

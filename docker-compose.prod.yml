@@ -1,0 +1,35 @@
+# VPS deploy overlay — explicit, not auto-loaded. Adds Caddy (reverse proxy + auto-HTTPS)
+# and re-points the dashboard's browser-facing env at the public domain instead of
+# localhost. Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# (passing -f explicitly means docker-compose.override.yml is NOT auto-merged in, so none
+# of its host-port publications leak into this deploy). See DEPLOY.md for the full runbook.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data          # ACME account + issued certs — must persist across restarts
+      - caddy_config:/config
+    depends_on:
+      - gateway
+      - dashboard
+    networks: [expense-net]
+
+  dashboard:
+    environment:
+      # Browser-facing — same origin as the API in prod (both behind Caddy on $DOMAIN),
+      # so no cross-origin CORS request is ever made, unlike the local-dev localhost:4200
+      # vs localhost:8080 split.
+      API_BASE_URL: https://${DOMAIN}
+      WS_BASE_URL: wss://${DOMAIN}
+
+volumes:
+  caddy_data:
+  caddy_config:

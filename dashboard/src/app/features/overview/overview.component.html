@@ -1,0 +1,84 @@
+<header class="topbar">
+  <h1>Expense Agent</h1>
+  <span class="live-dot" [class.live-dot--on]="liveConnected()" title="Live update channel"></span>
+</header>
+
+<section class="period-selector">
+  @for (option of periodOptions; track option.days) {
+    <button
+      type="button"
+      [class.active]="selectedDays() === option.days"
+      (click)="selectPeriod(option.days)"
+    >
+      {{ option.label }}
+    </button>
+  }
+</section>
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (insights().length) {
+  <section class="insights">
+    <h2>Insights</h2>
+    <ul>
+      @for (msg of insights(); track $index) {
+        <li>{{ msg }}</li>
+      }
+    </ul>
+  </section>
+}
+
+<section class="summary-cards">
+  <div class="card">
+    <span class="card-label">Total spent</span>
+    <span class="card-value">{{ grandTotal() | currency }}</span>
+  </div>
+</section>
+
+<section class="charts">
+  <div class="chart-box">
+    <h2>By category</h2>
+    @if (byCategory().length) {
+      <canvas
+        baseChart
+        [data]="categoryChartData()"
+        [options]="categoryChartOptions"
+        [type]="categoryChartType"
+      ></canvas>
+    } @else {
+      <p class="empty">No categorized expenses in this period.</p>
+    }
+  </div>
+</section>
+
+<section class="expense-table">
+  <h2>Expenses</h2>
+  @if (loading()) {
+    <p class="empty">Loading…</p>
+  } @else if (expenses().length === 0) {
+    <p class="empty">No expenses in this period.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Merchant</th>
+          <th>Category</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of expenses(); track row.id) {
+          <tr>
+            <td>{{ row.expenseDate | date: 'mediumDate' }}</td>
+            <td>{{ row.merchant || '—' }}</td>
+            <td>{{ row.category || 'uncategorized' }}</td>
+            <td class="num">{{ row.amount | currency: row.currency }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

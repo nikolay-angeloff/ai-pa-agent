@@ -3,3 +3,9 @@ databaseChangeLog:
       file: db/changelog/changes/001-init-schema.yaml
   - include:
       file: db/changelog/changes/002-add-extracted-data.yaml
+  - include:
+      file: db/changelog/changes/003-add-agent-thread-id.yaml
+  - include:
+      file: db/changelog/changes/004-widen-sender.yaml
+  - include:
+      file: db/changelog/changes/005-widen-gmail-ids.yaml

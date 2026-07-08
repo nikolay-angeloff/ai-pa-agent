@@ -1,4 +1,8 @@
 FROM python:3.12-slim
+# libpq-dev is required by psycopg (non-binary) for SCRAM-SHA-256 support.
+# psycopg[binary] bundles its own libpq but its SCRAM handler fails on ARM64.
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

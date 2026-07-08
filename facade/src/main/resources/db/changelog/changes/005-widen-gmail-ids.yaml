@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-widen-gmail-ids
+      author: expense-agent
+      changes:
+        # Gmail attachment IDs are opaque base64-like tokens that can exceed
+        # 255 chars in practice — same VARCHAR(255) overflow seen on `sender`.
+        - modifyDataType:
+            tableName: document
+            columnName: gmail_attachment_id
+            newDataType: TEXT
+        - modifyDataType:
+            tableName: document
+            columnName: gmail_message_id
+            newDataType: TEXT

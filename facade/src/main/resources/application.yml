@@ -16,6 +16,19 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   ai:
+    # Pins local/vps to the OpenAI starter explicitly. Both spring-ai-starter-model-openai
+    # and the two Bedrock starters (spring-ai-starter-model-bedrock-converse,
+    # spring-ai-starter-model-bedrock) are on facade's classpath — the Bedrock starters were
+    # added for the aws profile (application-aws.yml) but Spring Boot autoconfigures every
+    # starter's beans unconditionally, profile or not. Without this pin, three EmbeddingModel
+    # beans (OpenAI, Bedrock Titan, Bedrock Cohere) and two ChatModel beans are all candidates
+    # with nothing to disambiguate, and ExpensePersistenceService's constructor injection fails
+    # to start with "required a single bean, but N were found" — caught by Step 5's local
+    # `docker compose up --build` validation. application-aws.yml overrides both to the Bedrock
+    # equivalents for the aws profile only.
+    model:
+      chat: openai
+      embedding: openai
     openai:
       api-key: ${OPENAI_API_KEY:dummy}   # set real key in .env before calling /extract/run
       chat:
@@ -37,6 +50,8 @@ gmail:
 app:
   storage:
     raw-path: ${RAW_STORAGE_PATH:/tmp/raw}
+  insight:
+    cron: ${INSIGHT_CRON:0 0 8 * * *}   # daily 08:00 server time; tighten for local testing
 
 management:
   endpoints:

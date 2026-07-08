@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-add-agent-thread-id
+      author: expense-agent
+      changes:
+        - addColumn:
+            tableName: document
+            columns:
+              - column:
+                  name: agent_thread_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: true

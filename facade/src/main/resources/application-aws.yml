@@ -1,0 +1,62 @@
+# AWS profile (Phase 5) — a production variant that lives in the repo, ready to deploy,
+# but is NOT an active deployment. Activated via SPRING_PROFILES_ACTIVE=aws (set in the
+# ECS task definition — infra/cdk/, a later step — not in any docker-compose file).
+#
+# Only the LLM and vector-store connection details differ from local/vps; every other
+# base-application.yml setting (datasource, Liquibase, gmail, app.*, management.*) is
+# reused unchanged — this file overrides nothing it doesn't need to.
+
+spring:
+  ai:
+    # ── Chat: Bedrock Converse instead of the OpenAI API key ──────────────────────────
+    # application.yml pins spring.ai.model.chat/embedding to "openai" as the base default
+    # (both Bedrock starters are on facade's classpath too, for this profile — Spring Boot
+    # autoconfigures every starter's beans regardless of active profile, so an explicit pin
+    # is required or startup fails with an ambiguous-bean error). This profile overrides
+    # both to their Bedrock equivalents, active only when SPRING_PROFILES_ACTIVE=aws.
+    model:
+      chat: bedrock-converse
+      embedding: bedrock-titan
+    bedrock:
+      aws:
+        region: ${BEDROCK_REGION:eu-central-1}
+        # No access-key/secret-key here on purpose: unset, Spring AI falls through to the
+        # AWS SDK's default credential provider chain, which on ECS Fargate resolves to the
+        # task's IAM role — no static AWS credentials anywhere in this app, env, or Secrets
+        # Manager. (Secrets Manager is still used for the *other* secrets — DB password,
+        # JWT secret, etc. — via the ECS task definition; see infra/cdk/.)
+      converse:
+        chat:
+          options:
+            # Verify this ID is enabled for the target account/region in the Bedrock console
+            # before real use — Bedrock model access is opt-in per account and IDs do change.
+            model: "${BEDROCK_CHAT_MODEL_ID:anthropic.claude-3-5-sonnet-20241022-v2:0}"
+            temperature: 0.2   # extraction wants deterministic JSON, not creative variance
+
+    # Titan Embed Text v1 outputs 1536-dim vectors — chosen specifically to match
+    # QdrantCollectionInitializer.VECTOR_SIZE (hardcoded to 1536 for text-embedding-3-small,
+    # the local/vps model). Swapping to Titan v2 or Cohere would need a different Qdrant
+    # collection dimension, i.e. an application-code change — out of scope for a config-only
+    # profile. Re-evaluate if that constant ever changes.
+
+# Vector store: still Qdrant, not S3 Vectors, on AWS.
+#
+# TODO(S3 Vectors): CLAUDE.md's plan was S3 Vectors on AWS, behind Spring AI's VectorStore
+# interface. Checked via Context7 (2026-07): spring-ai-starter-vector-store-s3 only exists in
+# the v2.0.0-M6 milestone docs — it doesn't exist for v1.0.3 (this project's pinned GA BOM) or
+# even v1.1.8. It's pre-release, not something to build a "someday" prod profile on. Revisit
+# once it ships in a GA Spring AI release.
+#
+# Also worth noting for that future migration: facade's Qdrant integration today is NOT behind
+# Spring AI's VectorStore interface at all — QdrantConfig/QdrantCollectionInitializer and the
+# QdrantClient usage in QueryService/ExpensePersistenceService talk to Qdrant's raw gRPC client
+# directly. Moving to S3 Vectors (or any VectorStore-backed store) will mean refactoring that
+# call path onto VectorStore — real application-code work, deliberately not done here.
+#
+# Until then: no override needed below. qdrant.host/qdrant.port (application.yml) are already
+# env-var-driven with no local-only defaults baked in beyond `localhost` fallbacks that AWS
+# simply won't hit — the ECS task definition (infra/cdk/lib/compute-stack.ts) points them at a
+# self-hosted Qdrant service on Fargate, the same QdrantConfig bean local/vps already use.
+# Persistent storage is EFS, not EBS: ECS-attached EBS volumes (ecs.ServiceManagedVolume) are
+# single-task-attach and can't also back facade/agents' shared raw-storage mount the way EFS
+# does for both jobs through one mechanism — see infra/cdk/lib/storage-stack.ts.

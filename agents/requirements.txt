@@ -1,2 +1,13 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.3
+
+# LangGraph orchestration
+langgraph>=1.0.0
+langgraph-checkpoint-postgres # durable checkpointing (Step 5)
+psycopg                       # psycopg3, non-binary — uses system libpq (SCRAM-SHA-256 on ARM64)
+langchain-openai>=0.3.0       # classify + extract + query nodes (local/vps, default)
+langchain-aws>=0.2.0           # same nodes on Bedrock (Phase 5 aws profile, LLM_PROVIDER=bedrock)
+langsmith>=0.1.0               # tracing (Step 8)
+
+# Facade tool calls
+httpx>=0.27.0

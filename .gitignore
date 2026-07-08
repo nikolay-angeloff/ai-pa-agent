@@ -1,5 +1,6 @@
 # Secrets
 .env
+credentials.json          # Gmail OAuth client secret downloaded for scripts/get_gmail_token.py
 
 # Raw attachment data (can be large)
 data/

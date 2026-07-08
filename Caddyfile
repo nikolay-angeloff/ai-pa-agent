@@ -1,0 +1,31 @@
+# Reverse proxy for VPS deploy (docker-compose.prod.yml only — not used in local dev).
+# Gateway stays the single public entry point per CLAUDE.md's architecture rule: Caddy
+# never talks to postgres/qdrant/facade/agents directly, only gateway (API + the two
+# webhook callbacks it proxies onward) and dashboard (the SPA).
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# Telegram's inbound callback and the dashboard's live-update socket both go
+	# through gateway (see gateway/application.yml's webhook-telegram/webhook-ws
+	# routes) rather than exposing the webhook service itself — keeps /events/*
+	# (facade -> webhook, internal-only) unreachable from the outside.
+	handle /api/* {
+		reverse_proxy gateway:8080
+	}
+
+	handle /webhook/telegram {
+		reverse_proxy gateway:8080
+	}
+
+	handle /ws {
+		reverse_proxy gateway:8080
+	}
+
+	handle {
+		reverse_proxy dashboard:4200
+	}
+}

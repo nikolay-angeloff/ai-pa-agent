@@ -1,14 +1,13 @@
 package com.expense.facade.extraction.controller;
 
+import com.expense.facade.agent.client.AgentClient;
+import com.expense.facade.agent.dto.AgentProcessRequest;
+import com.expense.facade.agent.dto.AgentProcessResponse;
 import com.expense.facade.document.entity.Document;
 import com.expense.facade.document.entity.DocumentStatus;
-import com.expense.facade.document.entity.DocumentType;
 import com.expense.facade.document.repository.DocumentRepository;
 import com.expense.facade.extraction.dto.ExtractionDetail;
-import com.expense.facade.extraction.dto.ExtractionResult;
-import com.expense.facade.extraction.service.ExtractionService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.expense.facade.extraction.service.AgentResponseProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -26,21 +25,22 @@ public class ExtractionController {
 
     private static final Logger log = LoggerFactory.getLogger(ExtractionController.class);
 
-    private final ExtractionService extractionService;
+    private final AgentClient agentClient;
     private final DocumentRepository documentRepository;
-    private final ObjectMapper objectMapper;
+    private final AgentResponseProcessor agentResponseProcessor;
 
-    public ExtractionController(ExtractionService extractionService,
+    public ExtractionController(AgentClient agentClient,
                                 DocumentRepository documentRepository,
-                                ObjectMapper objectMapper) {
-        this.extractionService = extractionService;
+                                AgentResponseProcessor agentResponseProcessor) {
+        this.agentClient = agentClient;
         this.documentRepository = documentRepository;
-        this.objectMapper = objectMapper;
+        this.agentResponseProcessor = agentResponseProcessor;
     }
 
     /**
-     * Processes every document with status=RAW. Updates status + type in Postgres.
-     * Expense persistence and Qdrant embedding happen in POST /expenses/ingest.
+     * Processes every document with status=RAW via the LangGraph agent.
+     * The agent classifies + extracts; AgentResponseProcessor maps the
+     * result back to Document fields (facade is the single writer).
      */
     @PostMapping("/run")
     @Transactional
@@ -50,24 +50,14 @@ public class ExtractionController {
 
         for (Document doc : rawDocs) {
             try {
-                ExtractionResult result = extractionService.extract(doc);
-
-                doc.setStatus(DocumentStatus.EXTRACTED);
-                doc.setType(toDocumentType(result.documentType()));
-                doc.setRawText(buildEmbeddingText(result));
-                try {
-                    doc.setExtractedData(objectMapper.writeValueAsString(result));
-                } catch (JsonProcessingException ex) {
-                    log.warn("Could not serialize extraction result for doc {}", doc.getId());
-                }
-                documentRepository.save(doc);
-
-                log.info("Extracted doc {} → type={} merchant={} amount={} confidence={}",
-                        doc.getId(), result.documentType(), result.merchant(),
-                        result.amount(), result.confidence());
-
-                results.add(new ExtractionDetail(doc.getId(), "extracted", result));
-
+                AgentProcessRequest req = new AgentProcessRequest(
+                        doc.getId().toString(),
+                        doc.getRawStoragePath(),
+                        doc.getSubject(),
+                        doc.getSender()
+                );
+                AgentProcessResponse resp = agentClient.process(req);
+                results.add(agentResponseProcessor.apply(doc, resp));
             } catch (Exception e) {
                 log.error("Extraction failed for doc {}: {}", doc.getId(), e.getMessage());
                 doc.setStatus(DocumentStatus.FAILED);
@@ -77,20 +67,5 @@ public class ExtractionController {
         }
 
         return ResponseEntity.ok(results);
-    }
-
-    private DocumentType toDocumentType(String raw) {
-        if (raw == null) return DocumentType.UNKNOWN;
-        return switch (raw.toLowerCase()) {
-            case "receipt" -> DocumentType.RECEIPT;
-            case "invoice" -> DocumentType.INVOICE;
-            default        -> DocumentType.UNKNOWN;
-        };
-    }
-
-    /** Prose snippet stored on Document.rawText; used as embedding input in /expenses/ingest. */
-    private String buildEmbeddingText(ExtractionResult r) {
-        return "%s at %s for %s %s on %s".formatted(
-                r.documentType(), r.merchant(), r.amount(), r.currency(), r.date());
     }
 }

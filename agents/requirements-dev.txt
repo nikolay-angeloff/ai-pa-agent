@@ -1,0 +1,3 @@
+# Dev-only — not installed in the runtime container (see Dockerfile).
+-r requirements.txt
+pytest>=8.0.0

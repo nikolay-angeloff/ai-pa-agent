@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-widen-sender
+      author: expense-agent
+      changes:
+        # Gmail "From" headers can exceed 255 chars once MIME-encoded
+        # (=?UTF-8?B?...?=) display names are included — VARCHAR(255) was
+        # rejecting real-world ingested messages. Match `subject`'s TEXT type.
+        - modifyDataType:
+            tableName: document
+            columnName: sender
+            newDataType: TEXT

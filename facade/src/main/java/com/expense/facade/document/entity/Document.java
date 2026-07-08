@@ -25,16 +25,16 @@ public class Document {
     @Column(nullable = false, length = 32)
     private DocumentStatus status = DocumentStatus.RAW;
 
-    @Column(unique = true, length = 255)
+    @Column(unique = true, columnDefinition = "TEXT")
     private String gmailMessageId;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String gmailAttachmentId;
 
     @Column(columnDefinition = "TEXT")
     private String subject;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String sender;
 
     @Column(nullable = false)
@@ -49,6 +49,11 @@ public class Document {
     // JSON-serialized ExtractionResult; read by ExpensePersistenceService.
     @Column(columnDefinition = "TEXT")
     private String extractedData;
+
+    // LangGraph thread_id set when agent processes this document.
+    // Needed to resume a HITL-interrupted graph via POST /agent/resume/{threadId}.
+    @Column(length = 36)
+    private String agentThreadId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -90,4 +95,7 @@ public class Document {
     public void setExtractedData(String extractedData) { this.extractedData = extractedData; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
+
+    public String getAgentThreadId() { return agentThreadId; }
+    public void setAgentThreadId(String agentThreadId) { this.agentThreadId = agentThreadId; }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "expense-agent-infra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 5 — AWS CDK for the expense agent. A repo-resident 'someday' prod variant, not an active deployment. See infra/README.md.",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --all"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "aws-cdk": "^2.170.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.170.0",
+    "constructs": "^10.4.2",
+    "source-map-support": "^0.5.21"
+  }
+}

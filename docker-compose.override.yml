@@ -1,0 +1,35 @@
+# Auto-loaded by plain `docker compose up` (Compose merges this over docker-compose.yml
+# whenever no -f flags are given). Restores every host port the base file used to publish
+# unconditionally, so local dev keeps direct access to each service — same as before this
+# file existed. The VPS deploy explicitly lists its files (`-f docker-compose.yml -f
+# docker-compose.prod.yml`), which skips auto-loading this one, so none of these ports
+# reach the host in production — see DEPLOY.md.
+services:
+  postgres:
+    ports:
+      - "5434:5432"
+
+  qdrant:
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  facade:
+    ports:
+      - "8081:8081"
+
+  agents:
+    ports:
+      - "8000:8000"
+
+  gateway:
+    ports:
+      - "8080:8080"
+
+  webhook:
+    ports:
+      - "3000:3000"
+
+  dashboard:
+    ports:
+      - "4200:4200"
